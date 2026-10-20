@@ -1,0 +1,195 @@
+/* Scroll progress comes from script.js as CSS variables on each .stage:
+   --p  0..1 progress through the section
+   --k  0..1..0 (peaks mid-section)
+   --e  0..1 reaches 1 at two-thirds of the section
+   Without JavaScript the defaults below show every section in its final state. */
+:root {
+  --ink: #14202e;
+  --brand: #2f5bea;
+  --paper: #ffffff;
+  --mut: #51607a;
+  scroll-behavior: smooth;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  line-height: 1.6;
+}
+/* One fixed backdrop whose colour drifts as you scroll: sections feel like one scene */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(#fff, #eef3ff 35%, #fff4ea 65%, #e9f6ef);
+  background-size: 100% 400%;
+  background-position: 0 calc(var(--scroll, 0) * 100%);
+}
+h1, h2, h3 { line-height: 1.15; }
+a:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Skip link */
+.skip {
+  position: fixed; left: 50%; bottom: 1rem; z-index: 20;
+  transform: translate(-50%, 250%);
+  background: #fff; color: var(--ink); padding: .7rem 1.2rem;
+  border-radius: 999px; box-shadow: 0 8px 30px rgba(20,32,46,.2); text-decoration: none;
+}
+.skip:focus { transform: translate(-50%, 0); }
+
+/* Floating pill nav (Flexbox) */
+header {
+  position: fixed; top: .75rem; left: 0; right: 0; z-index: 10;
+  display: flex; justify-content: center; pointer-events: none;
+}
+nav {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: .25rem;
+  padding: .35rem; max-width: 94vw;
+  background: rgba(255,255,255,.88); backdrop-filter: blur(12px);
+  border-radius: 999px; box-shadow: 0 8px 30px rgba(20,32,46,.14);
+}
+nav a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: .5rem 1rem; border-radius: 999px;
+  color: var(--ink); text-decoration: none;
+  transition: background .2s, color .2s;
+}
+nav a:hover, nav a.on { background: var(--ink); color: #fff; }
+.logo { font-weight: 800; }
+.clock { padding: 0 .75rem; font-size: .85rem; color: var(--mut); font-variant-numeric: tabular-nums; }
+
+/* Pinned scroll stages */
+.stage { --p: 1; --k: 1; --e: 1; height: 200vh; position: relative; }
+.hero { --p: 0; }
+.pin {
+  position: sticky; top: 0; height: 100vh;
+  width: 100%; max-width: 60rem; margin: 0 auto;
+  padding: 5.5rem 1rem 2rem;
+  display: grid; place-content: center; justify-items: center;
+  gap: 1rem; text-align: center;
+  perspective: 1000px;
+}
+h2 { margin: 0; font-size: 1rem; color: var(--mut); font-weight: 600; }
+
+/* Hero: polaroid straightens, tips back and shrinks as you scroll */
+.polaroid {
+  margin: 0; background: #fff; padding: .8rem .8rem 1.8rem; width: min(15rem, 60vw);
+  box-shadow: 0 25px 50px rgba(20,32,46,.25);
+  transform:
+    rotate(calc(-6deg * (1 - var(--p))))
+    rotateX(calc(var(--p) * 40deg))
+    translateY(calc(var(--p) * -5vh))
+    scale(calc(1 - var(--p) * .3));
+  opacity: calc(1 - var(--p) * .5);
+}
+.photo {
+  aspect-ratio: 1; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--brand), #8aa5ff);
+  color: #fff; font-size: 4rem; font-weight: 800;
+}
+.polaroid img { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; }
+figcaption { margin-top: .5rem; font-family: "Bradley Hand", "Segoe Print", cursive; color: var(--mut); }
+h1 {
+  margin: 0; font-size: clamp(2rem, 6vw, 3.4rem);
+  transform: translateY(calc(var(--p) * -6vh));
+}
+h1 span { display: block; font: italic 400 1.3rem Georgia, serif; color: var(--mut); }
+.hero p { max-width: 36rem; margin: 0; color: var(--mut); transform: translateY(calc(var(--p) * -6vh)); }
+
+/* About: each word darkens as you scroll (spans added by script.js) */
+.reveal { margin: 0; max-width: 30ch; font-size: clamp(1.5rem, 4.5vw, 2.5rem); font-weight: 600; line-height: 1.35; }
+.reveal span { opacity: clamp(.2, calc(var(--p) * var(--n) - var(--i) + .2), 1); }
+
+/* Skills: cards fly from one stacked deck into the Grid */
+.cards {
+  position: relative; list-style: none; margin: 0; padding: 0; width: 100%;
+  display: grid; gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.cards li {
+  background: #fff; border: 1px solid #d9e2f2; border-radius: 1rem;
+  padding: 1.25rem; text-align: left;
+  box-shadow: 0 12px 30px rgba(20,32,46,.1);
+  transform:
+    translate(calc((1 - var(--e)) * var(--dx, 0px)), calc((1 - var(--e)) * var(--dy, 0px)))
+    rotate(calc((1 - var(--e)) * var(--r, 0deg)))
+    rotateY(calc((1 - var(--e)) * 35deg));
+  opacity: calc(.4 + var(--e) * .6);
+}
+.cards li:nth-child(1) { --r: -8deg; }
+.cards li:nth-child(2) { --r: 5deg; }
+.cards li:nth-child(3) { --r: -3deg; }
+.cards li:nth-child(4) { --r: 9deg; }
+.cards li:nth-child(5) { --r: -6deg; }
+.cards h3 { margin: 0 0 .25rem; font-size: 1.15rem; }
+.cards p { margin: 0; color: var(--mut); }
+
+/* Projects: device tilts in, flattens at centre, tilts away */
+.proj .pin { gap: 1.1rem; }
+.proj h3, .proj p, .tags { opacity: calc(.15 + var(--k) * 1.3); }
+.proj h3 { margin: 0; font-size: 1.6rem; }
+.proj p { max-width: 34rem; margin: 0; color: var(--mut); }
+.device {
+  background: #fff; overflow: hidden; width: min(22rem, 85vw);
+  border-radius: 1.2rem; box-shadow: 0 35px 60px rgba(20,32,46,.28);
+  transform:
+    rotateY(calc((.5 - var(--p)) * 55deg))
+    rotateX(calc((1 - var(--k)) * 18deg))
+    scale(calc(.8 + var(--k) * .2));
+  opacity: calc(.2 + var(--k) * 1.3);
+}
+.bar { display: flex; align-items: center; gap: .35rem; padding: .7rem; background: #eef2fa; }
+.bar i { width: .6rem; height: .6rem; border-radius: 50%; background: #c3cde0; }
+.bar span { flex: 1; margin-left: .5rem; padding: .2rem .8rem; border-radius: 99px; background: #fff; font-size: .8rem; color: var(--mut); text-align: left; }
+.screen { display: grid; gap: .75rem; padding: 1.25rem; }
+.row { height: 2.8rem; border-radius: .6rem; background: #eef2fa; }
+.row.short { width: 60%; }
+.progress { height: .6rem; border-radius: 99px; background: #e3e9f6; overflow: hidden; }
+.progress b { display: block; height: 100%; width: calc(var(--p) * 100%); background: var(--brand); }
+.phone { width: min(12.5rem, 58vw); border: .55rem solid var(--ink); border-radius: 2rem; }
+.hero-img { height: 6rem; border-radius: .8rem; background: linear-gradient(135deg, #ffb37a, #e86f8f); }
+.tags { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin: 0; padding: 0; }
+.tags li { padding: .25rem .8rem; border: 1px solid #c9d5ee; border-radius: 99px; background: #fff; font-size: .85rem; }
+
+/* Contact: a book that opens in 3D */
+.book {
+  display: grid; grid-template-columns: 1fr 1fr; width: min(42rem, 92vw);
+  transform-style: preserve-3d;
+  transform: rotateX(calc(55deg - var(--e) * 35deg)) scale(calc(.7 + var(--e) * .3));
+}
+.page { background: #fffdf8; padding: 2rem 1.5rem; min-height: 14rem; text-align: left; box-shadow: 0 25px 45px rgba(20,32,46,.22); }
+.page h3 { margin: 0 0 .5rem; font-size: 1.6rem; }
+.page p { margin: 0; overflow-wrap: anywhere; }
+.page a { color: var(--brand); }
+.l { transform-origin: right center; transform: rotateY(calc((1 - var(--e)) * 80deg)); border-radius: .6rem 0 0 .6rem; }
+.r { transform-origin: left center; transform: rotateY(calc((1 - var(--e)) * -80deg)); border-radius: 0 .6rem .6rem 0; border-left: 1px solid #e6dfd0; }
+.r ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.r a { display: flex; align-items: center; min-height: 44px; font-size: 1.15rem; }
+
+footer { padding: 2rem 1rem; text-align: center; color: var(--mut); }
+
+/* Phones: stack cards and pages, bigger tap targets */
+@media (max-width: 700px) {
+  .clock { display: none; }
+  nav { flex-wrap: wrap; justify-content: center; border-radius: 1.5rem; }
+  nav a { padding: .5rem .8rem; }
+  .stage { height: 170vh; }
+  .pin { padding-top: 6.5rem; gap: .75rem; }
+  .cards { grid-template-columns: 1fr; gap: .6rem; }
+  .cards li { padding: .8rem 1rem; }
+  .book { grid-template-columns: 1fr; }
+  .l, .r { border-radius: .6rem; }
+  .page { min-height: 0; }
+}
+
+/* Reduced motion: calm, static layout */
+@media (prefers-reduced-motion: reduce) {
+  :root { scroll-behavior: auto; }
+  * { transition: none !important; }
+  .stage { height: auto; }
+  .pin { position: static; height: auto; min-height: 60vh; }
+}
